@@ -65,7 +65,6 @@ passport.use(new GoogleStrategy({
     callbackURL: "http://localhost:3000/auth/google/secrets"
   },
   function(accessToken, refreshToken, profile, cb) {
-    console.log(profile);
     User.findOrCreate({ googleId: profile.id }, function (err, user) {
       return cb(err, user);
     });
@@ -88,11 +87,10 @@ app.get("/auth/google/secrets",
   });
 
 app.get("/secrets", (req, res)=>{
-    if(req.isAuthenticated()){
-        res.render("secrets");
-    }else{
-        res.redirect("/login");
-    }
+   User.find({"secret": {$ne: null}})
+   .then(foundUsers =>{
+    res.render("secrets", {usersWithSecrets: foundUsers});
+   })
 });
 
 app.get("/submit", (req, res)=>{
@@ -107,9 +105,19 @@ app.post("/submit", (req, res)=>{
     const submittedSecret = req.body.secret;
 
     User.findById(req.user.id)
-        .then(foundUser){
-            
-        }
+        .then(foundUser => {
+            foundUser.secret = submittedSecret;
+            foundUser.save()
+                .then(()=>{
+                    res.redirect("/secrets");
+                })
+                .catch((error)=>{
+                    console.log(error);
+                })
+        })
+        .catch(error =>{
+            console.log(error);
+        })
 
 })
 
